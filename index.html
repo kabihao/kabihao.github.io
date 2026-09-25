@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>同步器升级计算器</title>
+<style>
+  :root{
+    --bg1:#070a18; --bg2:#0b0f26;
+    --card:rgba(255,255,255,.05);
+    --line:rgba(255,255,255,.10);
+    --text:#e8eaf6; --dim:#8b90b5;
+    --violet:#8b5cf6; --pink:#ec4899; --cyan:#22d3ee;
+    --amber:#fbbf24; --rose:#f43f5e;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  .grid-2>*,.grid-3>*,.box-grid>*,.res-grid>*{min-width:0;}
+  body{
+    min-height:100%; color:var(--text);
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    background:
+      radial-gradient(1100px 560px at 12% -8%, rgba(139,92,246,.28), transparent 62%),
+      radial-gradient(900px 480px at 88% 6%, rgba(236,72,153,.18), transparent 62%),
+      radial-gradient(1000px 700px at 50% 112%, rgba(34,211,238,.13), transparent 62%),
+      linear-gradient(180deg,var(--bg1),var(--bg2));
+    background-attachment:fixed;
+    padding:14px 16px 22px;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1040px; margin:0 auto; zoom:1.06;}
+  .hero{text-align:center; margin-bottom:4px;}
+  .hero h1{
+    font-size:22px; font-weight:800; letter-spacing:1px;
+    background:linear-gradient(90deg,#a78bfa,#ec4899 55%,#fbbf24);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .hero .badge{
+    display:inline-block; margin-top:4px; padding:3px 11px; font-size:11px;
+    border:1px solid var(--line); border-radius:999px; color:var(--dim);
+    background:rgba(255,255,255,.04);
+  }
+
+  /* 主面板 */
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    box-shadow:0 18px 50px rgba(0,0,0,.35);
+  }
+  .panel{padding:9px 14px 10px;}
+  .panel-title{
+    font-size:13px; font-weight:600; color:#cfd3f0;
+    display:flex; align-items:center; gap:8px; margin-bottom:6px;
+  }
+  .panel-title::before{
+    content:""; width:4px; height:14px; border-radius:2px;
+    background:linear-gradient(180deg,var(--violet),var(--pink));
+  }
+  .subhead{margin:5px 0 4px; font-size:12px; color:#b9bde0; font-weight:600; letter-spacing:.5px;}
+  .subhead span{color:var(--dim); font-weight:400; margin-left:8px; font-size:11px;}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+  @media (max-width:720px){ .grid-2,.grid-3{grid-template-columns:1fr;} }
+  .field label{display:block; font-size:11px; color:var(--dim); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .field .inputbox{
+    display:flex; align-items:center; border:1px solid var(--line);
+    border-radius:9px; background:rgba(10,13,32,.6); overflow:hidden;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  .field .inputbox:focus-within{
+    border-color:var(--violet);
+    box-shadow:0 0 0 3px rgba(139,92,246,.18);
+  }
+  .field input{
+    width:100%; padding:6px 10px; border:none; outline:none; background:transparent;
+    color:var(--text); font-size:14px; font-weight:600; min-width:0;
+  }
+  .field input::placeholder{color:#565a80; font-weight:400;}
+  .field .unit{padding-right:10px; font-size:11px; color:var(--dim); white-space:nowrap;}
+  .field .dot{width:9px; height:9px; border-radius:50%; margin-left:10px; flex:none;}
+
+  /* 勾选框 */
+  .field .chkbox{
+    display:flex; align-items:center; gap:8px; padding:7px 12px; cursor:pointer;
+    border:1px solid var(--line); border-radius:9px; background:rgba(10,13,32,.6);
+    height:100%; min-height:34px;
+  }
+  .field .chkbox input[type=checkbox]{width:16px; height:16px; accent-color:var(--violet); cursor:pointer; flex:none;}
+  .field .chkbox .chk-label{font-size:12px; color:var(--text); font-weight:600;}
+
+  /* 每日产出小字 */
+  .daily-out{
+    margin-top:6px; padding:6px 14px; border-radius:9px; font-size:12px; color:var(--dim);
+    background:rgba(34,211,238,.07); border:1px solid rgba(34,211,238,.25); line-height:1.7;
+    display:flex; gap:16px; flex-wrap:wrap;
+  }
+  .daily-out b{color:#7dd3fc; font-weight:700;}
+
+  .actions{display:flex; gap:10px; margin-top:9px; flex-wrap:wrap; align-items:center;}
+  .btn{
+    border:none; border-radius:10px; cursor:pointer; font-size:14px; font-weight:700;
+    padding:9px 20px; color:#fff; letter-spacing:1px;
+    background:linear-gradient(135deg,var(--violet),var(--pink));
+    box-shadow:0 10px 26px rgba(168,85,247,.35);
+    transition:transform .15s, box-shadow .15s, opacity .2s;
+  }
+  .btn:hover{transform:translateY(-2px); box-shadow:0 14px 32px rgba(168,85,247,.45);}
+  .btn:active{transform:translateY(0);}
+  .btn.ghost{
+    background:rgba(255,255,255,.05); border:1px solid var(--line);
+    box-shadow:none; color:var(--dim); font-weight:500; padding:8px 16px;
+  }
+  .btn.ghost:hover{color:var(--text); border-color:rgba(255,255,255,.28);}
+
+  /* 箱子输入（表格式） */
+  .box-table{border:1px solid var(--line); border-radius:12px; overflow:hidden; background:rgba(10,13,32,.4);}
+  .bt-row{display:grid; grid-template-columns:96px repeat(5,1fr); align-items:center;}
+  .bt-row + .bt-row{border-top:1px solid var(--line);}
+  .bt-head{background:rgba(255,255,255,.05);}
+  .bt-head .bt-name{color:var(--dim); font-weight:600;}
+  .bt-name{padding:6px 10px; font-weight:700; font-size:12px; display:flex; align-items:center; gap:6px; text-align:left; min-width:0;}
+  .bt-name .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  .bt-row > span.cell{font-size:11px; color:var(--dim); text-align:center; padding:4px 2px; white-space:nowrap;}
+  .bt-row > span.head{font-weight:600; color:var(--dim); font-size:11px; text-align:center; padding:4px 2px; white-space:nowrap;}
+  .bt-row input{
+    margin:4px 5px; width:calc(100% - 10px); padding:5px 3px; text-align:center;
+    border:1px solid var(--line); border-radius:7px;
+    background:rgba(10,13,32,.6); color:var(--text); font-size:13px; font-weight:600; outline:none; min-width:0;
+  }
+  .bt-row input:focus{border-color:var(--violet); box-shadow:0 0 0 2px rgba(139,92,246,.18);}
+
+  /* 结果 */
+  #maxResult{display:none; margin-top:14px;}
+  .max-card{
+    position:relative; overflow:hidden; border-radius:16px; padding:16px 22px 18px;
+    display:flex; align-items:center; gap:26px;
+    background:linear-gradient(135deg, rgba(139,92,246,.20), rgba(236,72,153,.12), rgba(34,211,238,.07));
+    border:1px solid rgba(139,92,246,.35);
+    box-shadow:0 14px 40px rgba(0,0,0,.30);
+  }
+  .max-card::before{content:""; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg,var(--violet),var(--pink),var(--cyan));}
+  .max-num{
+    flex:none; font-size:68px; font-weight:900; line-height:.9; letter-spacing:1px;
+    font-variant-numeric:tabular-nums;
+    background:linear-gradient(135deg,#c4b5fd,#ec4899 55%,#fbbf24);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 40px rgba(236,72,153,.25);
+  }
+  .max-num small{
+    font-size:22px; font-weight:700; margin-left:8px;
+    -webkit-text-fill-color:var(--dim); background:none;
+  }
+  .max-info{min-width:0; flex:1;}
+  .max-title{font-size:15px; font-weight:800; color:#eef0ff;}
+  .max-title .lv{font-size:19px; letter-spacing:.5px;
+    background:linear-gradient(90deg,#a78bfa,#ec4899);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
+  .max-sub{margin-top:7px; font-size:12px; color:var(--dim); line-height:1.7;}
+  .max-sub b{color:#fff;}
+  .max-foot{display:flex; gap:8px; flex-wrap:wrap; margin-top:11px;}
+  .max-tag{
+    display:inline-flex; align-items:center; gap:5px; padding:4px 12px; font-size:12px; font-weight:600;
+    background:rgba(139,92,246,.18); border:1px solid rgba(139,92,246,.4); border-radius:999px;
+    color:#c4b5fd; white-space:nowrap;
+  }
+  .max-tag.ok{background:rgba(74,222,128,.14); border-color:rgba(74,222,128,.4); color:#4ade80;}
+  .max-tag.warn{background:rgba(251,191,36,.14); border-color:rgba(251,191,36,.4); color:#fbbf24;}
+
+  /* 按每日收入推算 */
+  #dailyResult{display:none; margin-top:12px;}
+  .proj-hero{
+    position:relative; overflow:hidden; border-radius:14px; padding:13px 20px 15px; margin-bottom:12px;
+    display:flex; align-items:center; gap:24px; flex-wrap:wrap;
+    background:linear-gradient(135deg, rgba(34,211,238,.14), rgba(139,92,246,.16), rgba(236,72,153,.10));
+    border:1px solid rgba(34,211,238,.3);
+  }
+  .proj-hero::before{content:""; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink));}
+  .proj-big{
+    flex:none; font-size:52px; font-weight:900; line-height:.95; letter-spacing:1px;
+    font-variant-numeric:tabular-nums;
+    background:linear-gradient(135deg,#7dd3fc,#a78bfa 45%,#ec4899);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:0 0 40px rgba(34,211,238,.3);
+  }
+  .proj-big small{
+    font-size:20px; font-weight:700; margin-left:8px;
+    -webkit-text-fill-color:var(--dim); background:none;
+  }
+  .proj-label{font-size:12px; color:var(--dim); margin-bottom:5px; letter-spacing:.5px;}
+  .proj-info{min-width:0; flex:1;}
+  .proj-title{font-size:15px; font-weight:800; color:#eef0ff;}
+  .proj-title .lv{
+    font-size:19px; letter-spacing:.5px;
+    background:linear-gradient(90deg,#7dd3fc,#a78bfa);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .proj-sub{margin-top:6px; font-size:12px; color:var(--dim); line-height:1.7;}
+  .proj-sub b{color:#fff;}
+  .proj-row{
+    display:grid; grid-template-columns:88px 1fr 1fr 104px; gap:10px; align-items:center;
+    padding:8px 12px; border-radius:9px; font-size:12px;
+    background:rgba(10,13,32,.5); border:1px solid var(--line);
+  }
+  .proj-row + .proj-row{margin-top:7px;}
+  .proj-row .p-name{font-weight:700; display:flex; align-items:center; gap:6px; min-width:0;}
+  .proj-row .p-name .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  .proj-row .p-k{color:var(--dim); font-size:11px; white-space:nowrap;}
+  .proj-row .p-v{font-weight:700; color:#dfe2fa; text-align:right; overflow-wrap:anywhere; word-break:break-word;}
+  .proj-row .p-days{color:#7dd3fc; text-align:right; font-weight:800; white-space:nowrap;}
+  .proj-row .p-bind{color:#fbbf24;}
+  .want-box{margin-top:12px; padding:12px 14px; border-radius:12px;
+    background:rgba(139,92,246,.08); border:1px solid rgba(139,92,246,.28);}
+  .want-head{font-size:13px; color:#e6e8ff; margin-bottom:9px; font-weight:700;}
+  .want-head b{
+    font-size:15px; letter-spacing:.5px;
+    background:linear-gradient(90deg,#7dd3fc,#a78bfa);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+
+  .res-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  @media (max-width:820px){ .res-grid{grid-template-columns:1fr;} }
+  .res-card{
+    padding:14px; border-radius:14px; position:relative; overflow:hidden; min-width:0;
+    background:var(--card); border:1px solid var(--line); backdrop-filter:blur(14px);
+  }
+  .res-card::before{content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--c,var(--violet));}
+  .res-head{display:flex; align-items:center; gap:9px; margin-bottom:8px;}
+  .res-ico{
+    width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:800; color:#0a0d20; background:var(--c,var(--violet)); flex:none;
+  }
+  .res-name{font-size:13px; font-weight:700;}
+  .res-sub{font-size:11px; color:var(--dim); margin-top:1px; overflow-wrap:anywhere; word-break:break-word;}
+  .neck{display:none; margin-left:auto;}
+  .neck.show{display:inline-block; font-size:10px; font-weight:700; color:#0a0d20;
+    background:linear-gradient(135deg,#fbbf24,#ec4899); padding:3px 8px; border-radius:999px; white-space:nowrap;}
+  .res-rows{margin-top:2px;}
+  .res-row{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; font-size:12px;}
+  .res-row .k{color:var(--dim); flex:none; margin-right:6px;}
+  .res-row .v{font-weight:700; color:#dfe2fa; text-align:right; overflow-wrap:anywhere; word-break:break-word;}
+  .res-time{
+    font-size:18px; font-weight:800; margin:4px 0 2px; overflow-wrap:anywhere; word-break:break-word;
+    background:linear-gradient(90deg,var(--c,var(--violet)),#fff);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .res-time.warn{background:linear-gradient(90deg,#fbbf24,#ec4899); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
+  .res-wait-label{font-size:10px; color:var(--dim); margin-top:6px; letter-spacing:.5px;}
+  .bar{height:6px; border-radius:99px; background:rgba(255,255,255,.08); margin-top:8px; overflow:hidden;}
+  .bar i{display:block; height:100%; border-radius:99px; width:0; transition:width .8s ease; background:var(--c,var(--violet));}
+  .bar-tip{display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:var(--dim);}
+  .openline{
+    margin-top:8px; padding:7px 10px; border-radius:8px; font-size:11px; line-height:1.7;
+    background:rgba(139,92,246,.10); border:1px solid rgba(139,92,246,.25); color:#cdd0f0;
+    overflow-wrap:anywhere; word-break:break-word;
+  }
+
+  .table-card{margin-top:10px; padding:10px 18px;}
+  .table-card summary{cursor:pointer; font-size:13px; font-weight:600; color:#cfd3f0; list-style:none; display:flex; align-items:center; gap:8px;}
+  .table-card summary::after{content:"▾"; margin-left:auto; color:var(--dim); transition:transform .2s;}
+  .table-card details[open] summary::after{transform:rotate(180deg);}
+  table{width:100%; border-collapse:collapse; margin-top:10px; font-size:12px;}
+  th,td{padding:7px 10px; text-align:right; border-bottom:1px solid var(--line);}
+  th{color:var(--dim); font-weight:600; background:rgba(255,255,255,.03);}
+  th:first-child,td:first-child{text-align:left;}
+  tr:hover td{background:rgba(255,255,255,.04);}
+  .num{color:#c7cbf0; font-variant-numeric:tabular-nums;}
+
+  .err{
+    display:none; margin-top:12px; padding:11px 14px; border-radius:10px;
+    background:rgba(244,63,94,.12); border:1px solid rgba(244,63,94,.4); color:#fda4af; font-size:13px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>同步器升级计算器</h1>
+    <div class="badge">数据源：prydwen</div>
+  </div>
+
+  <!-- ========== 参数与开箱输入 ========== -->
+  <div class="card panel">
+    <div class="panel-title">升级参数</div>
+    <div class="grid-2">
+      <div class="field"><label>当前同步器等级</label>
+        <div class="inputbox"><input id="b_current" type="number" min="250" max="1000" step="1" placeholder="例：551" value="551"></div></div>
+      <div class="field"><label>目标同步器等级</label>
+        <div class="inputbox"><input id="b_target" type="number" min="250" max="1000" step="1" placeholder="例：561" value="561"></div></div>
+    </div>
+    <div class="subhead">每小时产出</div>
+    <div class="grid-3">
+      <div class="field"><label>每小时信用点</label>
+        <div class="inputbox"><span class="dot" style="background:var(--amber)"></span><input id="b_credit" type="number" min="0" step="any" value="61140"><span class="unit">/时</span></div></div>
+      <div class="field"><label>每小时数据</label>
+        <div class="inputbox"><span class="dot" style="background:var(--cyan)"></span><input id="b_data" type="number" min="0" step="any" value="615660"><span class="unit">/时</span></div></div>
+      <div class="field"><label>每小时红球</label>
+        <div class="inputbox"><span class="dot" style="background:var(--rose)"></span><input id="b_red" type="number" min="0" step="any" value="102.5"><span class="unit">/时</span></div></div>
+    </div>
+
+    <div class="subhead">每日资源产出<span>扫荡 / 模拟室 / 额外产出，估算还需挂机多少天</span></div>
+    <div class="grid-3">
+      <div class="field"><label>钻石扫荡次数（每天，另含 1 次免费）</label>
+        <div class="inputbox"><span class="dot" style="background:linear-gradient(135deg,#fbbf24,#ec4899)"></span><input id="sweep" type="number" min="0" step="1" value="0"><span class="unit">次</span></div></div>
+      <div class="field"><label>模拟室 18h 数据</label>
+        <div class="inputbox chkbox"><input id="sim" type="checkbox" checked><span class="chk-label">计入每日数据产出</span></div></div>
+      <div class="field"><label>期望攒够天数（反推每日需求）</label>
+        <div class="inputbox"><span class="dot" style="background:var(--violet)"></span><input id="wantedDays" type="number" min="1" step="1" value="30"><span class="unit">天</span></div></div>
+    </div>
+    <div class="subhead" style="margin-top:8px">额外资源产出（小时/天）</div>
+    <div class="grid-3">
+      <div class="field"><label>额外信用点</label>
+        <div class="inputbox"><input id="x_credit" type="number" min="0" step="any" value="0"><span class="unit">时</span></div></div>
+      <div class="field"><label>额外数据</label>
+        <div class="inputbox"><input id="x_data" type="number" min="0" step="any" value="0"><span class="unit">时</span></div></div>
+      <div class="field"><label>额外红球</label>
+        <div class="inputbox"><input id="x_red" type="number" min="0" step="any" value="0"><span class="unit">时</span></div></div>
+    </div>
+    <div class="daily-out" id="dailyOut"></div>
+
+    <div class="subhead">已有资源<span>仓库里直接可用的资源数</span></div>
+    <div class="grid-3">
+      <div class="field"><label>已有信用点</label>
+        <div class="inputbox"><input id="oh_credit" type="number" min="0" step="any" value="0"></div></div>
+      <div class="field"><label>已有数据</label>
+        <div class="inputbox"><input id="oh_data" type="number" min="0" step="any" value="0"></div></div>
+      <div class="field"><label>已有红球</label>
+        <div class="inputbox"><input id="oh_red" type="number" min="0" step="any" value="0"></div></div>
+    </div>
+
+    <div class="subhead">各资源普通箱子数量</div>
+    <div class="box-grid" id="boxGrid"></div>
+
+    <div class="subhead">可自由分配箱子</div>
+    <div class="grid-2">
+      <div class="field"><label>大月卡箱数量</label>
+        <div class="inputbox"><span class="dot" style="background:linear-gradient(135deg,#fbbf24,#ec4899)"></span><input id="big" type="number" min="0" step="1" value="0"></div></div>
+      <div class="field"><label>三选一箱数量</label>
+        <div class="inputbox"><span class="dot" style="background:linear-gradient(135deg,#22d3ee,#8b5cf6)"></span><input id="three" type="number" min="0" step="1" value="0"></div></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn ghost" onclick="resetBoxes()">重置</button>
+      <span style="font-size:11px; color:var(--dim)">结果随输入实时更新</span>
+    </div>
+  </div>
+  <div class="err" id="bErr"></div>
+  <div id="dailyResult">
+    <div class="card panel">
+      <div class="panel-title">每日收入推算与期望天数反推</div>
+      <div id="dailyBody"></div>
+    </div>
+  </div>
+  <div id="maxResult">
+    <div class="summary" id="maxSummary"></div>
+  </div>
+
+  <div class="card table-card">
+    <details>
+      <summary>升级资源参考表（每级消耗，点击展开）</summary>
+      <table>
+        <thead><tr><th>等级区间</th><th>每级信用点</th><th>每级数据</th><th>每级红球</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </details>
+  </div>
+
+</div>
+
+<script>
+/* ================= 资源表与常量 ================= */
+const BANDS = [
+  {end:250,  range:"201-250", c:1694200,  d:20944600,  r:10000},
+  {end:300,  range:"251-300", c:3134000,  d:39883600,  r:10000},
+  {end:350,  range:"301-350", c:3809800,  d:50478800,  r:10000},
+  {end:400,  range:"351-400", c:4762250,  d:56536256,  r:11000},
+  {end:450,  range:"401-450", c:5952813,  d:61624519,  r:12000},
+  {end:500,  range:"451-500", c:7441016,  d:67170726,  r:13000},
+  {end:550,  range:"501-550", c:8185117,  d:72544384,  r:14000},
+  {end:600,  range:"551-600", c:9003629,  d:78347935,  r:15000},
+  {end:650,  range:"601-650", c:9453810,  d:83832290,  r:16000},
+  {end:700,  range:"651-700", c:9926501,  d:89700550,  r:17000},
+  {end:750,  range:"701-750", c:10422826, d:95082583,  r:18000},
+  {end:800,  range:"751-800", c:10943967, d:100787538, r:19000},
+  {end:850,  range:"801-850", c:11491166, d:105826915, r:20000},
+  {end:900,  range:"851-900", c:11491166, d:105826915, r:20000},
+  {end:950,  range:"901-950", c:11491166, d:105826915, r:20000},
+  {end:1000, range:"951-1000",c:11491166, d:105826915, r:20000}
+];
+const META = [
+  {key:"credit", name:"信用点", color:"var(--amber)"},
+  {key:"data",   name:"数据",   color:"var(--cyan)"},
+  {key:"red",    name:"红球",   color:"var(--rose)"}
+];
+const BOX_HOURS = [1,2,8,12,24];
+const RES_IDS = ["c","d","r"];
+/* 大月卡箱 / 三选一箱：单个可折算的小时数（信用点/数据/红球） */
+const VM = [30,10,10];
+const VT = [3,1,1];
+const STATE_KEY = "sync_level_calculator_state_v1";
+
+/* ================= 计算核心（纯 JS，与原 Python 逻辑一致） ================= */
+function bandCost(level){
+  for(const b of BANDS){ if(level<=b.end) return [b.c, b.d, b.r]; }
+  const b = BANDS[BANDS.length-1];
+  return [b.c, b.d, b.r];
+}
+function bandEndFor(level){
+  for(const b of BANDS){ if(level<=b.end) return b.end; }
+  return BANDS[BANDS.length-1].end;
+}
+function bandLabel(end){ return (end-49)+"-"+end; }
+
+/* 按每一级累计：返回 {count, need:[信用点,数据,红球], bands:[{label,levels,credit,data,red}]} */
+function calcNeed(current, target){
+  const need = [0,0,0];
+  const perBand = {};
+  let count = 0;
+  for(let level=current; level<target; level++){
+    const [c,d,r] = bandCost(level);
+    need[0]+=c; need[1]+=d; need[2]+=r;
+    const end = bandEndFor(level);
+    const bucket = perBand[end] || (perBand[end] = [0,0,0,0]);
+    bucket[0]++; bucket[1]+=c; bucket[2]+=d; bucket[3]+=r;
+    count++;
+  }
+  const bands = Object.keys(perBand).map(end=>{
+    const v = perBand[end];
+    return {label: bandLabel(+end), levels: v[0], credit: v[1], data: v[2], red: v[3]};
+  });
+  return {count, need, bands};
+}
+
+/* 数组字典序比较（用于贪心选择 key），等价 Python 元组比较 */
+function keyLess(a,b){
+  for(let k=0; k<a.length; k++){
+    if(a[k]<b[k]) return true;
+    if(a[k]>b[k]) return false;
+  }
+  return false;
+}
+
+/* 把大月卡箱(M)与三选一箱(T)分配给 3 种资源，使剩余最大小时缺口最小 */
+function allocateBoxes(D, M, T){
+  const allocM=[0,0,0], allocT=[0,0,0];
+  D = D.map(x=>Math.max(0,x));
+  while((M>0||T>0) && Math.max(...D)>0){
+    let best=null;
+    for(let i=0;i<3;i++){
+      if(D[i]>0){
+        if(M>0){
+          const nd=D.slice(); nd[i]=Math.max(0,nd[i]-VM[i]);
+          const key=[Math.max(...nd), -D[i], 0, i];
+          if(!best || keyLess(key,best[0])) best=[key,"M",i];
+        }
+        if(T>0){
+          const nd=D.slice(); nd[i]=Math.max(0,nd[i]-VT[i]);
+          const key=[Math.max(...nd), -D[i], 1, i];
+          if(!best || keyLess(key,best[0])) best=[key,"T",i];
+        }
+      }
+    }
+    if(!best) break;
+    const kind=best[1], i=best[2];
+    if(kind==="M"){ M--; allocM[i]++; D[i]=Math.max(0,D[i]-VM[i]); }
+    else{ T--; allocT[i]++; D[i]=Math.max(0,D[i]-VT[i]); }
+  }
+  return {allocM, allocT, D, leftM:M, leftT:T};
+}
+
+/* 缺口与开箱计算，返回结构与桌面版后端一致 */
+function computeBoxes(current, target, rates, onhand, boxes, big, three){
+  if(current>=target) return {error:"目标等级必须高于当前等级"};
+  if(target>1000) return {error:"目标等级不能超过 1000（表格上限）"};
+  if(current<250) return {error:"当前等级不能低于 250（表格下限）"};
+  if(rates.some(r=>r<0)) return {error:"每小时产量不能为负数"};
+  if(rates.some(r=>r<=0)) return {error:"每小时产出必须大于 0，才能把箱子折算成小时"};
+
+  const base = calcNeed(current, target);
+  const need = base.need;
+
+  const fixed = [];
+  for(let i=0;i<3;i++){
+    let s=0;
+    for(let j=0;j<BOX_HOURS.length;j++) s += boxes[i][j]*BOX_HOURS[j]*rates[i];
+    fixed.push(s);
+  }
+
+  const gap = need.map((n,i)=> n - onhand[i] - fixed[i]);   // 资源缺口（可为负=盈余）
+  const D_init = gap.map((g,i)=> Math.max(0,g)/rates[i]);   // 基础小时缺口
+
+  const alloc = allocateBoxes(D_init, big, three);
+
+  const final_gap = gap.map((g,i)=> g - (alloc.allocM[i]*VM[i] + alloc.allocT[i]*VT[i])*rates[i]);
+  const final_deficit = final_gap.map((g,i)=> Math.max(0,g)/rates[i]);
+  const bottleneck = final_deficit.indexOf(Math.max(...final_deficit));
+
+  return {
+    ok:true,
+    current, target,
+    count: base.count,
+    bands: base.bands,
+    need,
+    rates,
+    onhand,
+    fixed,
+    gap,
+    deficit_init: D_init,
+    allocM: alloc.allocM,
+    allocT: alloc.allocT,
+    leftM: alloc.leftM,
+    leftT: alloc.leftT,
+    final_gap,
+    final_deficit,
+    bottleneck,
+    sufficient: Math.max(...final_deficit) <= 1e-9
+  };
+}
+
+/* 当前资源（已有 + 普通箱 + 大月卡箱 + 三选一箱）最多能升到多少级 */
+function computeMaxLevel(current, rates, onhand, boxes, big, three){
+  if(current<250 || current>=1000) return {error:"当前等级需在 250 ~ 999 之间"};
+  if(rates.some(r=>r<=0)) return {error:"每小时产出必须大于 0，才能把箱子折算成小时"};
+
+  const surplus=[0,0,0];
+  for(let i=0;i<3;i++){
+    let fh=0;
+    for(let j=0;j<BOX_HOURS.length;j++) fh += boxes[i][j]*BOX_HOURS[j];
+    surplus[i] = onhand[i]/rates[i] + fh;
+  }
+
+  let M=big, T=three;
+  let level=current;
+  while(level<1000){
+    const [c,d,r] = bandCost(level);
+    const need = [c/rates[0], d/rates[1], r/rates[2]];
+    // 自由箱补足到能升这一级
+    while(true){
+      const deficit = need.map((n,i)=> n - surplus[i]);
+      if(deficit.every(x=>x<=1e-9)) break;
+      if(M<=0 && T<=0) break;
+      let best=null;
+      for(let i=0;i<3;i++){
+        if(deficit[i]>0){
+          if(M>0){
+            const ns=surplus.slice(); ns[i]+=VM[i];
+            const key=[Math.max(...need.map((n,k)=> n-ns[k])), -deficit[i], 0, i];
+            if(!best || keyLess(key,best[0])) best=[key,"M",i];
+          }
+          if(T>0){
+            const ns=surplus.slice(); ns[i]+=VT[i];
+            const key=[Math.max(...need.map((n,k)=> n-ns[k])), -deficit[i], 1, i];
+            if(!best || keyLess(key,best[0])) best=[key,"T",i];
+          }
+        }
+      }
+      if(!best) break;
+      const kind=best[1], i=best[2];
+      if(kind==="M"){ M--; surplus[i]+=VM[i]; }
+      else{ T--; surplus[i]+=VT[i]; }
+    }
+    // 能否升级
+    if(need.every((n,i)=> n - surplus[i] <= 1e-9)){
+      for(let i=0;i<3;i++) surplus[i] -= need[i];
+      level++;
+    }else{
+      break;
+    }
+  }
+
+  return {
+    ok:true,
+    current,
+    max_level: level,
+    leveled: level-current,
+    leftM: M,
+    leftT: T,
+    surplus,
+    reached_cap: level>=1000
+  };
+}
+
+/* ================= 格式化 ================= */
+function fmt(n){
+  if(n===Infinity) return "∞";
+  if(n>=1e8) return (n/1e8).toFixed(2)+" 亿";
+  if(n>=1e4) return (n/1e4).toFixed(2)+" 万";
+  return n.toLocaleString();
+}
+function fmtExact(n){ return n.toLocaleString(); }
+function fmtHours(h){
+  if(h===Infinity) return "∞";
+  const days = Math.floor(h/24);
+  const hours = Math.floor(h%24);
+  const mins = Math.round((h-Math.floor(h))*60);
+  if(days>0) return days+" 天 "+hours+" 小时";
+  if(hours>0) return hours+" 小时 "+mins+" 分";
+  return mins+" 分钟";
+}
+function hoursDetail(h){
+  if(h===Infinity) return "无穷大（产量为 0）";
+  return "≈ "+h.toFixed(1)+" 小时";
+}
+function fmtDays(d){ return fmtHours(d*24); }
+
+/* ================= UI 构建 ================= */
+function renderTable(){
+  const body = document.getElementById("tableBody");
+  let html="";
+  BANDS.forEach(b=>{
+    html+=`<tr><td>${b.range}</td><td class="num">${fmtExact(b.c)}</td><td class="num">${fmtExact(b.d)}</td><td class="num">${fmtExact(b.r)}</td></tr>`;
+  });
+  body.innerHTML=html;
+}
+
+function renderBoxInputs(){
+  const wrap = document.getElementById("boxGrid");
+  let html=`<div class="box-table">
+    <div class="bt-row bt-head"><span class="bt-name">资源</span>
+      ${BOX_HOURS.map(h=>`<span class="head">${h}小时</span>`).join("")}</div>`;
+  META.forEach((m,i)=>{
+    html+=`<div class="bt-row"><span class="bt-name"><span class="dot" style="background:${m.color}"></span>${m.name}</span>`;
+    BOX_HOURS.forEach(h=>{
+      html+=`<input id="${RES_IDS[i]}${h}" type="number" min="0" step="1" value="0" aria-label="${m.name}${h}小时箱">`;
+    });
+    html+=`</div>`;
+  });
+  html+=`</div>`;
+  wrap.innerHTML=html;
+}
+
+function readBoxes(){
+  const boxes=[[],[],[]];
+  RES_IDS.forEach((pref,i)=>{
+    BOX_HOURS.forEach(h=>{ boxes[i].push(parseInt(document.getElementById(pref+h).value||"0")||0); });
+  });
+  return boxes;
+}
+
+/* ================= 输入收集 ================= */
+function buildPayload(){
+  return {
+    current: parseInt(document.getElementById("b_current").value||""),
+    target:  parseInt(document.getElementById("b_target").value||""),
+    rates: [
+      parseFloat(document.getElementById("b_credit").value||"0")||0,
+      parseFloat(document.getElementById("b_data").value||"0")||0,
+      parseFloat(document.getElementById("b_red").value||"0")||0
+    ],
+    onhand: [
+      parseFloat(document.getElementById("oh_credit").value||"0")||0,
+      parseFloat(document.getElementById("oh_data").value||"0")||0,
+      parseFloat(document.getElementById("oh_red").value||"0")||0
+    ],
+    boxes: readBoxes(),
+    big: parseInt(document.getElementById("big").value||"0")||0,
+    three: parseInt(document.getElementById("three").value||"0")||0
+  };
+}
+
+function collectState(){
+  return {
+    current: parseInt(document.getElementById("b_current").value||"0")||0,
+    target:  parseInt(document.getElementById("b_target").value||"0")||0,
+    rates: [
+      parseFloat(document.getElementById("b_credit").value||"0")||0,
+      parseFloat(document.getElementById("b_data").value||"0")||0,
+      parseFloat(document.getElementById("b_red").value||"0")||0
+    ],
+    sweep: parseInt(document.getElementById("sweep").value||"0")||0,
+    sim: document.getElementById("sim").checked ? 1 : 0,
+    wanted: parseInt(document.getElementById("wantedDays").value||"30")||30,
+    extra: [
+      parseFloat(document.getElementById("x_credit").value||"0")||0,
+      parseFloat(document.getElementById("x_data").value||"0")||0,
+      parseFloat(document.getElementById("x_red").value||"0")||0
+    ],
+    onhand: [
+      parseFloat(document.getElementById("oh_credit").value||"0")||0,
+      parseFloat(document.getElementById("oh_data").value||"0")||0,
+      parseFloat(document.getElementById("oh_red").value||"0")||0
+    ],
+    boxes: readBoxes(),
+    big: parseInt(document.getElementById("big").value||"0")||0,
+    three: parseInt(document.getElementById("three").value||"0")||0
+  };
+}
+
+/* 每日资源产出（小时）：24h 挂机 + 扫荡(次数+1次免费)*2h + 模拟室18h数据 + 额外产出 */
+function dailyHours(){
+  const sweepN = parseInt(document.getElementById("sweep").value||"0")||0;
+  const simOn  = document.getElementById("sim").checked;
+  const sweepH = (sweepN + 1) * 2;
+  const xc = parseFloat(document.getElementById("x_credit").value||"0")||0;
+  const xd = parseFloat(document.getElementById("x_data").value||"0")||0;
+  const xr = parseFloat(document.getElementById("x_red").value||"0")||0;
+  return {
+    credit: 24 + sweepH + xc,
+    data: 24 + sweepH + (simOn ? 18 : 0) + xd,
+    red: 24 + sweepH + xr
+  };
+}
+function updateDaily(){
+  const d = dailyHours();
+  const out = document.getElementById("dailyOut");
+  if(!out) return;
+  out.innerHTML = `
+    <span>每日产出 <b>信用点 ${d.credit.toFixed(1)} 小时</b></span>
+    <span>数据 <b>${d.data.toFixed(1)} 小时</b></span>
+    <span>红球 <b>${d.red.toFixed(1)} 小时</b></span>
+    <span style="color:#565a80">（含 24h 挂机 + 扫荡 + ${document.getElementById("sim").checked?"模拟室 + ":""}额外）</span>`;
+}
+
+/* ================= 结果渲染 ================= */
+function renderDailyProjection(j){
+  const dd = dailyHours();
+  const darr = [dd.credit, dd.data, dd.red];
+  /* 开完全部箱子后的剩余缺口（数量与小时），已计入已有资源 + 普通箱 + 大月卡箱 + 三选一箱 */
+  const leftAmt = (j.final_gap||j.need.map((n,i)=>Math.max(0,n-j.onhand[i]))).map(g=>Math.max(0,g));
+  const leftH   = (j.final_deficit||leftAmt.map((a,i)=>a/(j.rates[i]||1e-9)));
+  /* 每日收入数量 */
+  const dailyAmt = darr.map((h,i)=> h * j.rates[i]);
+  /* 所需天数：三资源同时攒，取最慢 */
+  let days=0, bind=0;
+  for(let i=0;i<3;i++){
+    const di=darr[i] || 1e-9;
+    const d=leftH[i]/di;
+    if(d>days){ days=d; bind=i; }
+  }
+  const bindName=META[bind].name;
+  const allSet = leftAmt.every(a=>a<=0);
+
+  /* 箱子说明 */
+  const boxUsedM = (j.allocM||[0,0,0]).reduce((a,b)=>a+b,0);
+  const boxUsedT = (j.allocT||[0,0,0]).reduce((a,b)=>a+b,0);
+  const boxLine = (j.fixed&&j.fixed.some(v=>v>0) || boxUsedM>0 || boxUsedT>0)
+    ? `<div class="proj-sub">已计入箱子：普通箱折算 ${fmt((j.fixed||[0,0,0]).reduce((a,b)=>a+b,0))} + 大月卡箱 ×${boxUsedM} + 三选一箱 ×${boxUsedT}</div>`
+    : `<div class="proj-sub">未填写箱子，推算基于每日产出</div>`;
+
+  let hero;
+  if(allSet){
+    hero = `<div class="proj-label">按每日收入推算</div>
+      <div class="proj-big" style="font-size:40px">已足够</div>
+      <div class="proj-info">
+        <div class="proj-title">已有资源 + 全部箱子已满足从 <span class="lv">${j.current} 级</span> 升到 <span class="lv">${j.target} 级</span> 的全部需求</div>
+        <div class="proj-sub">无需等待每日产出，直接升级即可。</div>
+        ${boxLine}
+      </div>`;
+  }else{
+    hero = `<div class="proj-label">按当前每日收入，还需攒约</div>
+      <div class="proj-big">${fmtDays(days)}</div>
+      <div class="proj-info">
+        <div class="proj-title">从 <span class="lv">${j.current} 级</span> → <span class="lv">${j.target} 级</span>，共 ${j.count} 次单级升级（开完箱子后）</div>
+        <div class="proj-sub">制约资源：<b>${bindName}</b>（每日 ${darr[bind].toFixed(1)} 小时 / 收入 ${fmt(dailyAmt[bind])}）</div>
+        ${boxLine}
+      </div>`;
+  }
+
+  /* 三张资源卡：开箱后缺口 / 每日收入 / 按每日产出还需 */
+  const maxD = Math.max(...leftH, 1);
+  const cards = leftH.map((h,i)=>{
+    const m=META[i];
+    const isB = bind===i && !allSet;
+    const ok = leftAmt[i]<=0;
+    const pct = allSet ? 100 : Math.round(h/maxD*100);
+    const boxTotal = (j.fixed?j.fixed[i]:0)
+      + ((j.allocM?j.allocM[i]:0)*VM[i] + (j.allocT?j.allocT[i]:0)*VT[i]) * j.rates[i];
+    const openTxt = `大卡×${j.allocM?j.allocM[i]:0} 三选一×${j.allocT?j.allocT[i]:0}`;
+    const waitTxt = ok ? "已补齐" : fmtDays(h/(darr[i]||1e-9));
+    const subTxt = ok
+      ? ((j.final_gap&&j.final_gap[i]<-0.5) ? "开箱后盈余 "+fmt(-j.final_gap[i]) : "开箱后已足够")
+      : `每日产出 ${darr[i].toFixed(1)} 小时/天 · 开箱后缺口 ≈ ${h.toFixed(1)} 小时`;
+    return `<div class="res-card" style="--c:${m.color}">
+      <div class="res-head"><div class="res-ico">${m.name[0]}</div>
+        <div><div class="res-name">${m.name}</div><div class="res-sub">每小时 ${fmt(j.rates[i])}</div></div>
+        <span class="neck ${isB?'show':''}">瓶颈 ⚠</span></div>
+      <div class="res-rows">
+        <div class="res-row"><span class="k">升级需求</span><span class="v">${fmt(j.need[i])}</span></div>
+        <div class="res-row"><span class="k">已有资源</span><span class="v" style="font-size:12px;color:var(--dim)">${fmt(j.onhand[i])}</span></div>
+        <div class="res-row"><span class="k">箱子可抵</span><span class="v" style="font-size:12px;color:var(--dim)">${fmt(boxTotal)}</span></div>
+        <div class="res-row"><span class="k">开箱后还差</span><span class="v">${ok?"0":fmt(leftAmt[i])}</span></div>
+      </div>
+      <div class="openline">开箱分配：<b>${openTxt}</b></div>
+      <div class="res-wait-label">按每日产出还需</div>
+      <div class="res-time ${(isB&&!allSet)?'warn':''}">${waitTxt}</div>
+      <div class="res-sub">${subTxt}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="bar-tip"><span>${allSet?"已足够":"剩余缺口占比 "+pct+"%"}</span></div>
+    </div>`;
+  }).join("");
+
+  /* 期望天数反推：每天需要产出多少（基于开箱后剩余缺口） */
+  const W = parseFloat(document.getElementById("wantedDays").value||"30")||0;
+  const needPerDay = leftAmt.map((a,i)=> W>0 ? a/W : 0);
+  const needPerDayH = leftH.map((h,i)=> W>0 ? h/W : 0);
+  let wantBlock;
+  if(allSet){
+    wantBlock = `<div class="want-box">
+      <div class="want-head">按期望 <b>${W||30}</b> 天攒够：资源已足够，无需每日产出</div>
+    </div>`;
+  }else if(!W){
+    wantBlock = `<div class="want-box">
+      <div class="want-head">期望天数未填写，无法反推每日需求</div>
+    </div>`;
+  }else{
+    const wantRows = j.need.map((n,i)=>{
+      const m=META[i];
+      const diff = needPerDayH[i] - darr[i];
+      const okNow = diff <= 0;
+      return `<div class="proj-row">
+        <span class="p-name"><span class="dot" style="background:${m.color}"></span>${m.name}</span>
+        <span class="p-k">每天需要 <span class="p-v">${fmt(Math.round(needPerDay[i]))}</span></span>
+        <span class="p-k">约 <span class="p-v">${needPerDayH[i].toFixed(1)} 小时/天</span></span>
+        <span class="p-days ${okNow?'':'p-bind'}">${okNow?"已达标":"还差 "+diff.toFixed(1)+" 小时/天"}</span>
+      </div>`;
+    }).join("");
+    wantBlock = `<div class="want-box">
+      <div class="want-head">按期望 <b>${W}</b> 天内攒够（开箱后剩余缺口），每天需要产出：</div>
+      ${wantRows}
+    </div>`;
+  }
+
+  document.getElementById("dailyBody").innerHTML =
+    `<div class="proj-hero">${hero}</div><div class="res-grid">${cards}</div>${wantBlock}`;
+  document.getElementById("dailyResult").style.display="block";
+}
+
+function renderMaxLevel(j){
+  const sum=document.getElementById("maxSummary");
+  const num=j.max_level;
+  let title, sub, tag, tagCls="";
+  if(j.reached_cap){
+    title = `当前资源足够一路升到 <span class="lv">1000 级</span>（满级上限）`;
+    sub = `从 ${j.current} 级起共升 <b>${j.leveled}</b> 级，全部箱子开完资源仍有富余。`;
+    tag = "🎉 资源充足"; tagCls="ok";
+  }else if(j.leveled<=0){
+    title = `当前资源暂时升不了 1 级`;
+    sub = `距升到 <b>${j.current+1} 级</b>还差资源，需要先挂机积攒或补充箱子。`;
+    tag = "⚠ 无法升级"; tagCls="warn";
+  }else{
+    title = `当前资源最多可升到 <span class="lv">${j.max_level} 级</span>`;
+    sub = `从 ${j.current} 级起共升 <b>${j.leveled}</b> 级`;
+    const lacks=[];
+    j.surplus.forEach((s,i)=>{ if(s<0) lacks.push(META[i].name); });
+    if(lacks.length){ tag="止步："+lacks.join("、")+"不足"; tagCls="warn"; }
+    else{ tag="箱子已用尽，继续挂机可再升级"; }
+  }
+  const leftTxt = `剩余 大月卡箱 ×${j.leftM}、三选一箱 ×${j.leftT}`;
+  sum.innerHTML = `
+    <div class="max-card">
+      <div class="max-num">${num}<small>级</small></div>
+      <div class="max-info">
+        <div class="max-title">${title}</div>
+        <div class="max-sub">${sub}</div>
+        <div class="max-foot">
+          <span class="max-tag ${tagCls}">${tag}</span>
+          <span class="max-tag">${leftTxt}</span>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById("maxResult").style.display="block";
+}
+
+/* ================= 实时计算（输入即刷新，无后端） ================= */
+let recalcTimer=null;
+function scheduleRecalc(){
+  clearTimeout(recalcTimer);
+  recalcTimer=setTimeout(recalc, 400);
+}
+function recalc(){
+  const err=document.getElementById("bErr");
+  err.style.display="none";
+  const payload=buildPayload();
+  if(!Number.isInteger(payload.current)||!Number.isInteger(payload.target)){
+    document.getElementById("maxResult").style.display="none";
+    document.getElementById("dailyResult").style.display="none";
+    return;
+  }
+  const j1 = computeBoxes(payload.current, payload.target, payload.rates, payload.onhand, payload.boxes, payload.big, payload.three);
+  const j2 = computeMaxLevel(payload.current, payload.rates, payload.onhand, payload.boxes, payload.big, payload.three);
+  let hasErr=false;
+  if(j1 && j1.error){
+    err.textContent=j1.error; err.style.display="block"; hasErr=true;
+    document.getElementById("dailyResult").style.display="none";
+  }else{
+    renderDailyProjection(j1);
+  }
+  if(j2 && j2.error){
+    err.textContent=j2.error; err.style.display="block"; hasErr=true;
+    document.getElementById("maxResult").style.display="none";
+  }else{
+    renderMaxLevel(j2);
+  }
+  if(hasErr) return;
+}
+
+/* ================= 状态记忆（localStorage，与桌面版 json 互不影响） ================= */
+let saveTimer=null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{
+      localStorage.setItem(STATE_KEY, JSON.stringify(collectState()));
+    }catch(e){ /* 忽略保存失败 */ }
+  }, 600);
+}
+
+function applyState(s){
+  if(!s) return;
+  if(s.current!==undefined && s.current!==null) document.getElementById("b_current").value=s.current;
+  if(s.target!==undefined && s.target!==null) document.getElementById("b_target").value=s.target;
+  if(s.rates){
+    document.getElementById("b_credit").value=s.rates[0]!==undefined?s.rates[0]:61140;
+    document.getElementById("b_data").value=s.rates[1]!==undefined?s.rates[1]:615660;
+    document.getElementById("b_red").value=s.rates[2]!==undefined?s.rates[2]:102.5;
+  }
+  if(s.sweep!==undefined) document.getElementById("sweep").value=s.sweep;
+  if(s.sim!==undefined) document.getElementById("sim").checked = !!s.sim;
+  if(s.wanted!==undefined) document.getElementById("wantedDays").value=s.wanted;
+  if(s.extra){
+    document.getElementById("x_credit").value=s.extra[0]||0;
+    document.getElementById("x_data").value=s.extra[1]||0;
+    document.getElementById("x_red").value=s.extra[2]||0;
+  }
+  if(s.onhand){
+    document.getElementById("oh_credit").value=s.onhand[0]||0;
+    document.getElementById("oh_data").value=s.onhand[1]||0;
+    document.getElementById("oh_red").value=s.onhand[2]||0;
+  }
+  if(s.boxes){
+    s.boxes.forEach((row,i)=>{
+      row.forEach((v,j)=>{
+        const el=document.getElementById(RES_IDS[i]+BOX_HOURS[j]);
+        if(el) el.value=v;
+      });
+    });
+  }
+  if(s.big!==undefined) document.getElementById("big").value=s.big;
+  if(s.three!==undefined) document.getElementById("three").value=s.three;
+  updateDaily();
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STATE_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s && s.current!==undefined) applyState(s);
+  }catch(e){ /* 忽略加载失败 */ }
+}
+
+/* ================= 重置 ================= */
+function resetBoxes(){
+  document.getElementById("b_current").value=551;
+  document.getElementById("b_target").value=561;
+  document.getElementById("b_credit").value=61140;
+  document.getElementById("b_data").value=615660;
+  document.getElementById("b_red").value=102.5;
+  document.getElementById("sweep").value=0;
+  document.getElementById("sim").checked=true;
+  document.getElementById("wantedDays").value=30;
+  document.getElementById("x_credit").value=0;
+  document.getElementById("x_data").value=0;
+  document.getElementById("x_red").value=0;
+  ["oh_credit","oh_data","oh_red"].forEach(id=>document.getElementById(id).value=0);
+  RES_IDS.forEach(pref=>BOX_HOURS.forEach(h=>document.getElementById(pref+h).value=0));
+  document.getElementById("big").value=0;
+  document.getElementById("three").value=0;
+  updateDaily();
+  scheduleRecalc();
+  scheduleSave();
+}
+
+/* 任意输入变化即触发防抖保存 + 更新每日产出 + 实时重算 */
+document.addEventListener("input", (e)=>{
+  if(e.target && e.target.tagName === "INPUT"){
+    scheduleSave();
+    updateDaily();
+    scheduleRecalc();
+  }
+});
+document.addEventListener("change", (e)=>{
+  if(e.target && e.target.id === "sim"){
+    scheduleSave();
+    updateDaily();
+    scheduleRecalc();
+  }
+});
+
+/* ================= 初始化 ================= */
+renderTable();
+renderBoxInputs();
+updateDaily();
+loadState();
+recalc();
+</script>
+</body>
+</html>
