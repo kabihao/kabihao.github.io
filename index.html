@@ -272,6 +272,48 @@
     display:none; margin-top:12px; padding:11px 14px; border-radius:10px;
     background:rgba(244,63,94,.12); border:1px solid rgba(244,63,94,.4); color:#fda4af; font-size:13px;
   }
+
+  /* ================= 移动端适配 ================= */
+  @media (max-width:720px){
+    body{padding:10px 10px 18px;}
+    .wrap{zoom:1; max-width:100%;}
+    .panel{padding:10px 12px 12px;}
+    .field label{white-space:normal; overflow:visible; text-overflow:clip;}
+    .field input{padding:8px 10px; font-size:15px;}
+    .field .inputbox .dot{margin-left:8px;}
+    .subhead span{display:block; margin:3px 0 0; line-height:1.5;}
+
+    /* 箱子表格：手机上列宽收紧 + 允许横向滑动 */
+    .box-table{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+    .bt-row{grid-template-columns:64px repeat(5,1fr); min-width:300px;}
+    .bt-name{padding:6px 6px; font-size:11px;}
+    .bt-row input{margin:4px 3px; width:calc(100% - 6px); padding:6px 2px; font-size:13px;}
+    .bt-row > span.head{font-size:10px; padding:4px 1px;}
+
+    /* 结果区：hero 与最大等级卡片改为纵向排列 */
+    .proj-hero{flex-direction:column; align-items:flex-start; gap:8px; padding:14px 16px 16px;}
+    .proj-big{font-size:40px;}
+    .proj-title{font-size:14px;}
+    .proj-title .lv{font-size:17px;}
+    .max-card{flex-direction:column; align-items:flex-start; gap:10px; padding:16px 18px;}
+    .max-num{font-size:54px;}
+    .res-time{font-size:17px;}
+
+    /* 期望反推行：窄屏两列，超窄一列 */
+    .proj-row{grid-template-columns:1fr 1fr; gap:6px 8px; padding:9px 12px;}
+    .proj-row .p-days{grid-column:1 / -1; text-align:left;}
+
+    /* 参考表：横向滑动 */
+    .table-card{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+    table{min-width:520px;}
+  }
+  @media (max-width:400px){
+    .hero h1{font-size:19px;}
+    .daily-out{gap:8px 14px;}
+    .proj-row{grid-template-columns:1fr;}
+    .proj-row .p-days{grid-column:auto;}
+    .daily-out span{white-space:nowrap;}
+  }
 </style>
 </head>
 <body>
